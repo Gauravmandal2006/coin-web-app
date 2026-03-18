@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Coin Detector</title>
+</head>
+<body>
+
+<h2>Upload Image</h2>
+
+<input type="file" id="fileInput">
+<button onclick="upload()">Detect</button>
+
+<hr>
+
+<h2>Camera</h2>
+<video id="video" width="300" autoplay></video>
+<button onclick="capture()">Capture</button>
+
+<hr>
+
+<h2>Result</h2>
+<img id="output" width="300">
+<h3 id="count"></h3>
+<h3 id="details"></h3>
+
+<script>
+// Start camera
+navigator.mediaDevices.getUserMedia({ video: true })
+.then(stream => {
+    document.getElementById("video").srcObject = stream;
+});
+
+// Upload
+function upload() {
+    let file = document.getElementById("fileInput").files[0];
+    sendToServer(file);
+}
+
+// Capture
+function capture() {
+    let video = document.getElementById("video");
+    let canvas = document.createElement("canvas");
+
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+
+    canvas.getContext("2d").drawImage(video, 0, 0);
+
+    canvas.toBlob(blob => {
+        sendToServer(blob);
+    });
+}
+
+// Send to backend
+function sendToServer(file) {
+    let formData = new FormData();
+    formData.append("image", file);
+
+    fetch("/predict", {
+        method: "POST",
+        body: formData
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.error) {
+            alert(data.error);
+        } else {
+            document.getElementById("output").src = data.image;
+
+            document.getElementById("count").innerText =
+                "Total Coins: " + data.count;
+
+            let text = "";
+            for (let key in data.coins) {
+                text += key + ": " + data.coins[key] + " | ";
+            }
+
+            text += "Total Amount: ₹" + data.total;
+
+            document.getElementById("details").innerText = text;
+        }
+    });
+}
+</script>
+
+</body>
+</html>
